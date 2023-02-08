@@ -1,4 +1,3 @@
-Attribute VB_Name = "telegram"
 Const adTypeBinary = 1
 Const adTypeText = 2
 Const adModeReadWrite = 3
@@ -204,53 +203,53 @@ End Function
 Sub test()
  Stop
  'message
- Set FirstMessage = ParseJson(tmBotSend(Token, chat_id, "Мы начинаем КВН"))
- tmBotSend Token, chat_id, "Папа", ToD()
+ Set FirstMessage = ParseJson(tmBotSend(Token, chat_id, "РњС‹ РЅР°С‡РёРЅР°РµРј РљР’Рќ"))
+ tmBotSend Token, chat_id, "РџР°РїР°", ToD()
  'https://core.telegram.org/bots/api#sendmessage
- tmBot Token, chat_id, "sendMessage", ToD("text", "Мама" & space(4096 - 8) & "Папа")
- tmBotForm Token, chat_id, "sendMessage", ToD("text", "Мама" & space(4095 - 8) & "Папа")
+ tmBot Token, chat_id, "sendMessage", ToD("text", "РњР°РјР°" & space(4096 - 8) & "РџР°РїР°")
+ tmBotForm Token, chat_id, "sendMessage", ToD("text", "РњР°РјР°" & space(4095 - 8) & "РџР°РїР°")
  
  'photo
- tmBotSend Token, chat_id, "фотка по файл ид", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo")
- tmBotSend Token, chat_id, "фотка по УРЛ", ToD("https://vremya-ne-zhdet.ru/wp-content/uploads/2020/04/picture174.png", "photo")
+ tmBotSend Token, chat_id, "С„РѕС‚РєР° РїРѕ С„Р°Р№Р» РёРґ", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo")
+ tmBotSend Token, chat_id, "С„РѕС‚РєР° РїРѕ РЈР Р›", ToD("https://vremya-ne-zhdet.ru/wp-content/uploads/2020/04/picture174.png", "photo")
  'https://core.telegram.org/bots/api#sendphoto
- tmBot Token, chat_id, "sendPhoto", ToD("caption", "фотка по файл ид", "photo", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA")
+ tmBot Token, chat_id, "sendPhoto", ToD("caption", "С„РѕС‚РєР° РїРѕ С„Р°Р№Р» РёРґ", "photo", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA")
  
  'attach photo
- tmBotSend Token, chat_id, "вложенная фотка", ToD("s:\01.jpg")
+ tmBotSend Token, chat_id, "РІР»РѕР¶РµРЅРЅР°СЏ С„РѕС‚РєР°", ToD("s:\01.jpg")
  'https://core.telegram.org/bots/api#sending-files
- tmBotForm Token, chat_id, "sendPhoto", ToD("caption", "вложенная фотка", "photo", "s:\01.jpg")
+ tmBotForm Token, chat_id, "sendPhoto", ToD("caption", "РІР»РѕР¶РµРЅРЅР°СЏ С„РѕС‚РєР°", "photo", "s:\01.jpg")
  
  'attach photo as document
- tmBotSend Token, chat_id, "вложенная фотка как файл", ToD("s:\01.jpg", "document")
+ tmBotSend Token, chat_id, "РІР»РѕР¶РµРЅРЅР°СЏ С„РѕС‚РєР° РєР°Рє С„Р°Р№Р»", ToD("s:\01.jpg", "document")
  'https://core.telegram.org/bots/api#senddocument
- tmBotForm Token, chat_id, "sendDocument", ToD("caption", "вложенная фотка как файл", "document", "s:\01.jpg")
+ tmBotForm Token, chat_id, "sendDocument", ToD("caption", "РІР»РѕР¶РµРЅРЅР°СЏ С„РѕС‚РєР° РєР°Рє С„Р°Р№Р»", "document", "s:\01.jpg")
  
  'attach video as animation
- tmBotSend Token, chat_id, "вложенное видео как анимация", ToD("s:\abaku.mp4", "animation")
+ tmBotSend Token, chat_id, "РІР»РѕР¶РµРЅРЅРѕРµ РІРёРґРµРѕ РєР°Рє Р°РЅРёРјР°С†РёСЏ", ToD("s:\abaku.mp4", "animation")
  'https://core.telegram.org/bots/api#sendanimation
- tmBotForm Token, chat_id, "sendAnimation", ToD("animation", "s:\abaku.mp4", "caption", "вложенное видео как анимация")
+ tmBotForm Token, chat_id, "sendAnimation", ToD("animation", "s:\abaku.mp4", "caption", "РІР»РѕР¶РµРЅРЅРѕРµ РІРёРґРµРѕ РєР°Рє Р°РЅРёРјР°С†РёСЏ")
  
  'photos
- tmBotSend Token, chat_id, "фотки по файл ид", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA", "photo")
+ tmBotSend Token, chat_id, "С„РѕС‚РєРё РїРѕ С„Р°Р№Р» РёРґ", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA", "photo")
  'photos raw
- tmBot Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "фотки по файл ид", "type", "photo", "media", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA"), ToD("type", "photo", "media", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA"))))
+ tmBot Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "С„РѕС‚РєРё РїРѕ С„Р°Р№Р» РёРґ", "type", "photo", "media", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA"), ToD("type", "photo", "media", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA"))))
  
  'attach photos
- tmBotSend Token, chat_id, "вложенные фотки", ToD("s:\01.jpg", "", "s:\02.jpg", "")
+ tmBotSend Token, chat_id, "РІР»РѕР¶РµРЅРЅС‹Рµ С„РѕС‚РєРё", ToD("s:\01.jpg", "", "s:\02.jpg", "")
  'https://core.telegram.org/bots/api#sendmediagroup
- tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", "[{""caption"":""вложенные фотки"",""type"":""photo"",""media"":""attach://01.jpg""},{""type"":""photo"",""media"":""attach://02.jpg""}]", "01.jpg", "s:\01.jpg", "02.jpg", "s:\02.jpg")
+ tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", "[{""caption"":""РІР»РѕР¶РµРЅРЅС‹Рµ С„РѕС‚РєРё"",""type"":""photo"",""media"":""attach://01.jpg""},{""type"":""photo"",""media"":""attach://02.jpg""}]", "01.jpg", "s:\01.jpg", "02.jpg", "s:\02.jpg")
  
  'attach documents
- tmBotSend Token, chat_id, "вложенные файлы", ToD("s:\01.jpg", "document", "s:\02.jpg", "document")
+ tmBotSend Token, chat_id, "РІР»РѕР¶РµРЅРЅС‹Рµ С„Р°Р№Р»С‹", ToD("s:\01.jpg", "document", "s:\02.jpg", "document")
  'attach documents raw
- tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "вложенные файлы", "type", "document", "media", "attach://p1"), ToD("type", "document", "media", "attach://p2"))), "p1", "s:\01.jpg", "p2", "s:\02.jpg")
+ tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "РІР»РѕР¶РµРЅРЅС‹Рµ С„Р°Р№Р»С‹", "type", "document", "media", "attach://p1"), ToD("type", "document", "media", "attach://p2"))), "p1", "s:\01.jpg", "p2", "s:\02.jpg")
  
  'attach photo video
- tmBotSend Token, chat_id, "фотка и видео", ToD("s:\01.jpg", "", "s:\abaku.mp4", "")
+ tmBotSend Token, chat_id, "С„РѕС‚РєР° Рё РІРёРґРµРѕ", ToD("s:\01.jpg", "", "s:\abaku.mp4", "")
  'attach photo video raw
- tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "фотка и видео", "type", "photo", "media", "attach://p"), ToD("type", "video", "media", "attach://v"))), "p", "s:\01.jpg", "v", "s:\abaku.mp4")
- Set lastMessage = ParseJson(tmBotSend(Token, chat_id, "Расчёт окончен"))
+ tmBotForm Token, chat_id, "sendMediaGroup", ToD("media", ConvertToJson(Array(ToD("caption", "С„РѕС‚РєР° Рё РІРёРґРµРѕ", "type", "photo", "media", "attach://p"), ToD("type", "video", "media", "attach://v"))), "p", "s:\01.jpg", "v", "s:\abaku.mp4")
+ Set lastMessage = ParseJson(tmBotSend(Token, chat_id, "Р Р°СЃС‡С‘С‚ РѕРєРѕРЅС‡РµРЅ"))
  Stop
  If Not FirstMessage("ok") Then Exit Sub
  If Not lastMessage("ok") Then Exit Sub
@@ -267,5 +266,3 @@ Sub test()
   If Not deleteMessage("ok") Then Debug.Print deleteMessage("description")
  Next
 End Sub
-
-
