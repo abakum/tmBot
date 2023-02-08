@@ -2,8 +2,9 @@ Const adTypeBinary = 1
 Const adTypeText = 2
 Const adModeReadWrite = 3
 Const adSaveCreateOverWrite = 2
-Const telegram = "https://api.telegram.org/bot"
-Const tmDeb = True
+Const api = "https://api.telegram.org/bot"
+Const tmDeb = True 'limits send per second, do debug.print and save body to logfile
+Const logFile = "c:\ins\body.txt"
 
 Public Function tmBotSend(Token As String, chat_id As String, Optional text As String = "", Optional param As Object) As String
  'https://www.planetaexcel.ru/forum/index.php?PAGE_NAME=message&FID=1&TID=93149&TITLE_SEO=93149-kak-sdelat-otpravku-v-telegram-iz-makrosa-vba-excel&MID=1193376#message1193376
@@ -22,6 +23,7 @@ Public Function tmBotSend(Token As String, chat_id As String, Optional text As S
   filename = param.Keys
   pavd = param.Items  'pavd as "photo", "animation", "audio", "voice", "video", "video_note" and "document" as default
  End If
+ sendChatAction = True 'only one sendChatAction
  For i = 0 To IIf(UBound(filename) > 9, 9, UBound(filename))
   send = "document"
   dfn = "" 'filename w/o path case exist
@@ -65,11 +67,14 @@ Public Function tmBotSend(Token As String, chat_id As String, Optional text As S
    If Len(filename(i)) Then d.Add send, filename(i)
   End If
   If d.Count Then
-   Select Case send
-   Case "photo", "voice", "video", "video_note", "document"
-    tmBot Token, chat_id, "sendChatAction", ToD("action", "upload_" & send)
-   End Select
-   If UBound(filename) Then 'group of media
+   If sendChatAction Then 'limits send per second
+    Select Case send
+    Case "photo", "voice", "video", "video_note", "document"
+     tmBot Token, chat_id, "sendChatAction", ToD("action", "upload_" & send)
+     sendChatAction = False
+    End Select
+   End If
+   If UBound(filename) Then 'group of media files
    Else
     tmBotSend = tmBotForm(Token, chat_id, "send" & StrConv(Replace(send, "_n", "N"), vbProperCase), d)
     Exit Function
@@ -128,13 +133,13 @@ Function bodyToBytes(send As String, fileC As Collection, bondS As String) As Va
   .Type = adTypeBinary
   .Open
   .write stringToBytes(send)
-  For Each arr In fileC
-   .write stringToBytes(CStr(arr(0)))
-   .write fileToBytes(CStr(arr(1)))
+  For Each strA In fileC
+   .write stringToBytes((strA(0)))
+   .write fileToBytes((strA(1)))
   Next
   .write stringToBytes(bondS)
   .Position = 0
-  If tmDeb Then .SaveToFile "c:\ins\body.txt", adSaveCreateOverWrite
+  If tmDeb Then .SaveToFile logFile, adSaveCreateOverWrite
   bodyToBytes = .read
   .Close
  End With
@@ -156,26 +161,40 @@ Function tmBotForm(Token As String, chat_id As String, verb As String, param As 
    send = send & bond() & form(k) & param(k)
   End If
  Next
+ If tmDeb Then
+  Debug.Print api & "_id:pass/" & verb
+  Debug.Print "Content-Type", "multipart/form-data; boundary=" & bond("", "")
+  T0 = Timer
+ End If
  With CreateObject("MSXML2.XMLHTTP")
-  .Open "POST", telegram & Token & "/" & verb, False
+  .Open "POST", api & Token & "/" & verb, False
   .setRequestHeader "Content-Type", "multipart/form-data; boundary=" & bond("", "")
   .send bodyToBytes(send, fileC, bond(suff:="--"))
   tmBotForm = .responseText
-  If tmDeb Then Debug.Print ConvertToJson(ParseJson(.responseText), Whitespace:=1)
+  If tmDeb Then
+   Debug.Print ConvertToJson(ParseJson(.responseText), Whitespace:=1), Timer - T0
+   WaitSec 'limits send per second
+  End If
  End With
 End Function
 Function tmBot(Token As String, chat_id As String, verb As String, param As Object) As String
  'param is Dictionary use ToD()
- send = telegram & Token & "/" & verb & "?chat_id=" & chat_id
+ send = api & Token & "/" & verb & "?chat_id=" & chat_id
  For Each k In param.Keys
   send = send & "&" & k & "=" & WorksheetFunction.EncodeURL(param(k))
  Next
- If tmDeb Then Debug.Print send
+ If tmDeb Then
+  Debug.Print Replace(send, Token, "_id:pass")
+  T0 = Timer
+ End If
  With CreateObject("MSXML2.XMLHTTP")
   .Open "POST", send, False
   .send
   tmBot = .responseText
-  If tmDeb Then Debug.Print ConvertToJson(ParseJson(.responseText), Whitespace:=1)
+  If tmDeb Then
+   Debug.Print ConvertToJson(ParseJson(.responseText), Whitespace:=1), Timer - T0
+   WaitSec 'limits send per second
+  End If
  End With
 End Function
 Function ToScD(ParamArray param()) As Object
@@ -199,6 +218,13 @@ Function ToD(ParamArray param()) As Object
   ToD.Add param(i), v
  Next
 End Function
+
+Sub WaitSec(Optional sec As Single = 1)
+ T0 = Timer
+ Do
+  DoEvents
+ Loop Until Timer - T0 >= sec
+End Sub
 
 Sub test()
  Stop
@@ -257,7 +283,7 @@ Sub test()
   First = FirstMessage("result")("message_id")
   Last = lastMessage("result")("message_id")
  Else
-  First = 210
+  First = 215
   Last = 212
  End If
  For i = First To Last 'https://core.telegram.org/bots/api#deletemessage
