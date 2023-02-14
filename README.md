@@ -7,9 +7,7 @@ SendX where X: Message, Photo, ... MediaGroup by Telegram Bot API from VBA
 - Tim Hall - for [VBA-Dictionary](https://github.com/timhall/VBA-Dictionary) 
 ## Usage
 - Add to your project module [telegram.bas](telegram.bas)
-- Add to your project module [JsonConverter.bas](https://github.com/VBA-tools/VBA-JSON/blob/master/JsonConverter.bas)
-Module JsonConverter.bas used "New Dictionary" and "As Dictionary" then
-- Add to your project class [Dictionary.cls](https://github.com/VBA-tools/VBA-Dictionary/blob/master/Dictionary.cls) or set a reference to Microsoft Scripting Runtime
+- Add to your project module [JsonConverter.bas](https://github.com/abakum/VBA-JSON/blob/master/JsonConverter.bas)
 - Set Public Const token=<bot_id>:<bot_password>
 - Set Public Const chat_id=<chat_id>
 - Run test()
