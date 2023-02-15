@@ -22,7 +22,7 @@ Function pavd2dfn(ByVal pavd As String, ByVal filename As String, Optional ByRef
  Case "photo", "animation", "audio", "voice", "video", "video_note", "document"
   send = LCase(pavd)
  Case Else
-  If Not filename Like "*?:*?.?*" Then Exit Function 'not file and not url
+  If Not filename Like "*?:*?.?*" Then Exit Function 'file_id
   a = Split(filename, ".")
   Select Case a(UBound(a))  'type by ext
   Case "jpg", "jpeg", "png"
@@ -38,7 +38,7 @@ Function pavd2dfn(ByVal pavd As String, ByVal filename As String, Optional ByRef
   End Select
  End Select
  If Len(send) = 0 Then Exit Function
- If Not filename Like "[A-z]:\?*" Then Exit Function 'not file
+ If Not likeFilename(filename) Then Exit Function
  On Error Resume Next
  pavd2dfn = Dir(filename)
 End Function
@@ -46,87 +46,112 @@ End Function
 #If Obj Then
 Public Function tmBotSend(token As String, chat_id As String, Optional Text As String = vbNullString, Optional param As Object) As String
  Dim d As Object
+ Dim dAll As Object
 #Else
 Public Function tmBotSend(token As String, chat_id As String, Optional Text As String = vbNullString, Optional param As Dictionary) As String
  Dim d As Dictionary
+ Dim dAll As Dictionary
 #End If
  'https://www.planetaexcel.ru/forum/index.php?PAGE_NAME=message&FID=1&TID=93149&TITLE_SEO=93149-kak-sdelat-otpravku-v-telegram-iz-makrosa-vba-excel&MID=1193376#message1193376
  'use ToD(key, value, key2, value2, ...) to setup param
- Set d = ToD("chat_id", chat_id)
- Set medias = New Collection
+ Set dAll = ToD("chat_id", chat_id)
+ Dim medias As New Collection
+ Dim files As New Collection
  Dim send As String
  Dim dfn As String
+ Dim caption As Boolean: caption = Len(Text) 'only once
+ Dim sendChatAction As Boolean: sendChatAction = True 'only once
+ Dim doSend As Boolean
+ Dim gi As Integer 'group index
  If param Is Nothing Then
-  If Len(Text) Then
-   d.Add "text", Text
-   tmBotSend = tmBot(token, "sendMessage", d)
+  If caption Then
+   dAll.Add "text", Text
+   tmBotSend = tmBotURL(token, "sendMessage", dAll)
   End If
   Exit Function
- Else
-  If param.Count = 0 Then
-   If Len(Text) Then
-    d.Add "text", Text
-    tmBotSend = tmBotForm(token, "sendMessage", d)
-   End If
+ End If
+ attach = 0
+ For Each k In param.keys
+  dfn = pavd2dfn(param(k), k, send) 'filename without path case exist
+  If Len(send) > 0 Then
+   If Len(dfn) Then attach = attach + 1
+   files.Add Array(k, send, dfn) 'path|url|file_id type filename
+  Else
+   dAll.Add k, param(k)
+  End If
+ Next
+ If files.Count = 0 Then
+  If caption Then
+   dAll.Add "text", Text
+   tmBotSend = tmBotForm(token, "sendMessage", dAll)
+  End If
+  Exit Function
+ End If
+ Set d = ToD()
+ For Each k In dAll.keys
+  d.Add k, dAll(k)
+ Next
+ gi = 0
+ For i = 1 To files.Count
+  filename = files(i)(0)
+  send = files(i)(1)
+  dfn = files(i)(2)
+  If attach > 0 And sendChatAction Then
+   Select Case send
+   Case "animation", "audio"
+   Case Else
+    tmBotURL token, "sendChatAction", ToD("chat_id", chat_id, "action", "upload_" & send)
+    sendChatAction = False
+   End Select
+  End If
+  If files.Count = 1 Then
+   If likeFilename(filename) And Len(dfn) = 0 Then Exit Function
+   If caption Then d.Add "caption", Text
+   d.Add send, filename
+   tmBotSend = tmBotForm(token, "send" & Replace(send, "_n", "N"), d)
    Exit Function
   End If
-  filename = param.keys
-  pavd = param.Items  'pavd as "photo", "animation", "audio", "voice", "video", "video_note", "document"
- End If
- sendChatAction = True 'only one sendChatAction
- For i = 0 To UBound(filename)
-  dfn = pavd2dfn(pavd(i), filename(i), send) 'filename w/o path case exist
-  doSend = Len(send) > 0
-  If doSend Then
-   If UBound(filename) Then 'group of media files
-    If Len(dfn) Then
-     media = "attach://file" & i
-     d.Add "file" & i, filename(i)
-    Else
-     If filename(i) Like "[A-z]:\?*" Then 'file not exist
-      doSend = False
-     Else
-      media = filename(i)
-     End If
-    End If
-    If doSend Then
-     If i = 0 And Len(Text) > 0 Then
-      medias.Add ToD("type", send, "media", media, "caption", Text)
-     Else
-      medias.Add ToD("type", send, "media", media)
-     End If
-    End If
-   Else 'media file
-    If Len(Text) Then d.Add "caption", Text
-    d.Add send, filename(i)
-    tmBotSend = tmBotForm(token, "send" & StrConv(Replace(send, "_n", "N"), vbProperCase), d)
-    Exit Function
-   End If 'UBound(filename)
-   If d.Count > 1 Then 'chat_id
-    If sendChatAction Then 'limits send per second
-     Select Case send
-     Case "photo", "voice", "video", "video_note", "document"
-      tmBot token, "sendChatAction", ToD("chat_id", chat_id, "action", "upload_" & send)
-      sendChatAction = False
-     End Select
-    End If
-   End If 'd.Count > 1
-  End If 'doSend
-  If (i + 1) Mod 10 = 0 Then
-   'use module JsonConverter from https://github.com/VBA-tools/VBA-JSON
-   d.Add "media", ConvertToJson(medias)
-   tmBotSend = tmBotForm(token, "sendMediaGroup", d)
+  'group of media files
+  If Len(dfn) Then
+   media = "attach://file" & i
+   d.Add "file" & i, filename
+  Else
+   If likeFilename(filename) Then
+    media = vbNullString
+   Else
+    media = filename
+   End If
+  End If
+  If Len(media) Then
+   gi = gi + 1
+   If caption Then
+    medias.Add ToD("type", send, "media", media, "caption", Text)
+    caption = False
+   Else
+    medias.Add ToD("type", send, "media", media)
+   End If
+  End If
+  If gi Mod 10 = 0 Then
+   tmBotSend = sendMediaGroup(medias, d)
    d.RemoveAll
-   d.Add "chat_id", chat_id
-   Set medias = Nothing
+   For Each k In dAll.keys
+    d.Add k, dAll(k)
+   Next
    Set medias = New Collection
   End If
  Next
- If medias.Count Then
-  'use module JsonConverter from https://github.com/VBA-tools/VBA-JSON
-  d.Add "media", ConvertToJson(medias)
-  tmBotSend = tmBotForm(token, "sendMediaGroup", d)
- End If
+ tmBotSend = sendMediaGroup(medias, d)
+End Function
+
+#If Obj Then
+Function sendMediaGroup(medias As Collection, d As Object) As String
+#Else
+Function sendMediaGroup(medias As Collection, d As Dictionary) As String
+#End If
+ If medias.Count = 0 Then Exit Function
+ 'use module JsonConverter from https://github.com/VBA-tools/VBA-JSON
+ d.Add "media", ConvertToJson(medias)
+ sendMediaGroup = tmBotForm(token, "sendMediaGroup", d)
 End Function
 
 Private Function bond(Optional pref As String = vbCrLf & "--", Optional suff As String = vbCrLf, Optional BOUNDARY As String = "--OYWFRYGNCYQAOCCT44655,4239930556") As String
@@ -205,7 +230,9 @@ Function bodyToBytes(send As String, files As Collection, bondS As String) As Va
   .Close
  End With
 End Function
-
+Function likeFilename(filename) As Boolean
+ likeFilename = filename Like "[A-z]:\?*"
+End Function
 #If Obj Then
 Function tmBotForm(token As String, verb As String, param As Object) As String
 #Else
@@ -213,23 +240,24 @@ Function tmBotForm(token As String, verb As String, param As Dictionary) As Stri
 #End If
  Dim multipart As String
  Dim files As New Collection
- Dim doSend As Boolean: doSend = True
  Dim dfn As String
+ Dim send As String
  For Each k In param.keys
-  dfn = pavd2dfn(k, param(k))
-  If Len(dfn) Then
-   files.Add Array(bond() & form(k, dfn), param(k))
-  Else
-   If param(k) Like "[A-z]:\?*" Then 'file not exist
-    doSend = False
+  If VarType(k) = vbString Then
+   dfn = pavd2dfn(k, param(k), send)
+   If Len(dfn) Then
+    files.Add Array(bond() & form(k, dfn), param(k))
    Else
-    multipart = multipart & bond() & form(k) & param(k)
+    If Len(send) > 0 And likeFilename(param(k)) Then
+     Exit Function
+    Else
+     multipart = multipart & bond() & form(k) & param(k)
+    End If
    End If
   End If
  Next
- If Not doSend Then Exit Function
- If files.Count = 0 Then
-  tmBotForm = tmBot(token, verb, param)
+ If files.Count = 0 Then 'URL query string
+  tmBotForm = tmBotURL(token, verb, param)
   Exit Function
  End If
 #If Obj Then
@@ -244,6 +272,7 @@ Function tmBotForm(token As String, verb As String, param As Dictionary) As Stri
    Debug.Print "Content-Type: multipart/form-data; boundary=" & bond("", "") & String(2, vbCrLf)
    T0 = Timer
    .send bodyToBytes(multipart, files, bond(suff:="--"))
+   Debug.Print
    'use module JsonConverter from https://github.com/VBA-tools/VBA-JSON
    Debug.Print ConvertToJson(ParseJSON(.responseText), Whitespace:=1), Timer - T0
    WaitSec 'limits send per second
@@ -254,9 +283,9 @@ Function tmBotForm(token As String, verb As String, param As Dictionary) As Stri
  End With
 End Function
 #If Obj Then
-Function tmBot(token As String, verb As String, Optional param As Object) As String
+Function tmBotURL(token As String, verb As String, Optional param As Object) As String
 #Else
-Function tmBot(token As String, verb As String, Optional param As Dictionary) As String
+Function tmBotURL(token As String, verb As String, Optional param As Dictionary) As String
 #End If
  send = api & token & "/" & verb
  If param Is Nothing Then
@@ -283,7 +312,7 @@ Function tmBot(token As String, verb As String, Optional param As Dictionary) As
   #Else
   .send
   #End If
-  tmBot = .responseText
+  tmBotURL = .responseText
  End With
 End Function
 #If Obj Then
@@ -315,7 +344,7 @@ End Function
 Sub test()
  Stop
  Dim json As String
- json = tmBot(token, "getMe")
+ json = tmBotURL(token, "getMe")
 #If JSON_Parser_by_Daniel_Ferry Then
  Set dic = json2dic(json)
  Debug.Print ListPaths(dic)
@@ -342,14 +371,14 @@ Sub test()
  Stop
  tmBotSend token, chat_id, "02 Мама", ToD()
  'https://core.telegram.org/bots/api#sendmessage
- tmBot token, "sendMessage", ToD("chat_id", chat_id, "text", "03" & space(4096 - 6) & "Мама")
+ tmBotURL token, "sendMessage", ToD("chat_id", chat_id, "text", "03" & space(4096 - 6) & "Мама")
  tmBotForm token, "sendMessage", ToD("chat_id", chat_id, "text", "04" & space(4096 - 6 - 1) & "Мама")
  
  'photo
  tmBotSend token, chat_id, "05 фотка по файл ид", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo")
  tmBotSend token, chat_id, "06 фотка по УРЛ", ToD("https://vremya-ne-zhdet.ru/wp-content/uploads/2020/04/picture174.png")
  'https://core.telegram.org/bots/api#sendphoto
- tmBot token, "sendPhoto", ToD("chat_id", chat_id, "caption", "07 фотка по файл ид", "photo", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA")
+ tmBotURL token, "sendPhoto", ToD("chat_id", chat_id, "caption", "07 фотка по файл ид", "photo", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA")
  
  'attach photo
  tmBotSend token, chat_id, "08 вложенная фотка", ToD("s:\01.jpg")
@@ -364,7 +393,7 @@ Sub test()
  'try attach not exist photo
  tmBotSend token, chat_id, "12 попытка послать отсутствующую фотку", ToD("s:\00.jpg")
  tmBotForm token, "sendPhoto", ToD("chat_id", chat_id, "caption", "13 попытка послать отсутствующую фотку", "photo", "s:\00.jpg")
- 
+ Stop
  'attach video as animation
  tmBotSend token, chat_id, "14 вложенное видео как анимация", ToD("s:\abaku.mp4", "animation")
  'https://core.telegram.org/bots/api#sendanimation
@@ -373,10 +402,10 @@ Sub test()
  'photos
  tmBotSend token, chat_id, "16 фотки по файл ид", ToD("AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA", "photo", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA", "photo")
  'photos raw
- tmBot token, "sendMediaGroup", ToD("chat_id", chat_id, "media", ConvertToJson(Array(ToD("caption", "17 фотки по файл ид", "type", "photo", "media", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA"), ToD("type", "photo", "media", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA"))))
+ tmBotURL token, "sendMediaGroup", ToD("chat_id", chat_id, "media", ConvertToJson(Array(ToD("caption", "17 фотки по файл ид", "type", "photo", "media", "AgACAgIAAxkDAANIY90VxfyqwbbEP7xy9MacV5VwcTAAAp_EMRtlgOlK8gV2JnFsXYcBAAMCAAN3AAMuBA"), ToD("type", "photo", "media", "AgACAgIAAxkDAANiY-HtiTrOf1yGJcU3_-9H2rwDLdEAAlXFMRuxTwlLqAge0lEC0wkBAAMCAAN5AAMuBA"))))
  
  'attach photos
- tmBotSend token, chat_id, "18 вложенные фотки", ToD("s:\01.jpg", "", "s:\02.jpg", "")
+ tmBotSend token, chat_id, "18 вложенные фотки", ToD("s:\01.jpg", "", "s:\02.jpg")
  'https://core.telegram.org/bots/api#sendmediagroup
  tmBotForm token, "sendMediaGroup", ToD("chat_id", chat_id, "media", "[{""caption"":""19 вложенные фотки"",""type"":""photo"",""media"":""attach://01.jpg""},{""type"":""photo"",""media"":""attach://02.jpg""}]", "01.jpg", "s:\01.jpg", "02.jpg", "s:\02.jpg")
  
@@ -393,9 +422,10 @@ Sub test()
  'try attach photo and unexist photo
  tmBotSend token, chat_id, "24 попытка послать фотку и отсутствующую фотку", ToD("s:\01.jpg", "", "s:\00.jpg")
  'attach 11 photo and video
- tmBotSend token, chat_id, "25 видео и 11 фоток", ToD("s:\abaku.mp4", "", "s:\01.jpg", "", "s:\02.jpg", "", "s:\04.jpg", "", "s:\05.jpg", "", "s:\07.jpg", "", "s:\08.jpg", "", "s:\09.jpg", "", "s:\11.jpg", "", "s:\12.jpg", "", "s:\13.jpg", "", "s:\14.jpg")
- 
- 'lastMessage = Val(json2dic(tmBotSend(token, chat_id, "Расчёт окончен"))("obj.result.message_id"))
+ tmBotSend token, chat_id, "25 видео и 11 фоток", ToD("s:\abaku.mp4", "", "s:\01.jpg", "", "s:\02.jpg", "", "s:\04.jpg", "", "s:\05.jpg", "", "s:\07.jpg", "", "s:\08.jpg", "", "s:\09.jpg", "", "s:\11.jpg", "", "s:\12.jpg", "", "s:\13.jpg", "", "s:\14.jpg", "", "s:\00.jpg")
+#If JSON_Parser_by_Daniel_Ferry Then
+ lastMessage = Val(json2dic(tmBotSend(token, chat_id, "Расчёт окончен"))("obj.result.message_id"))
+End If
  lastMessage = ParseJsonPart(tmBotSend(token, chat_id, "Расчёт окончен"), "message_id")
  Stop
  If IsNull(firstMessage) Then Exit Sub
@@ -408,7 +438,7 @@ Sub test()
   Last = 212
  End If
  For i = first To Last 'https://core.telegram.org/bots/api#deletemessage
-  Set deleteMessage = ParseJSON(tmBot(token, "deleteMessage", ToD("chat_id", chat_id, "message_id", i)))
+  Set deleteMessage = ParseJSON(tmBotURL(token, "deleteMessage", ToD("chat_id", chat_id, "message_id", i)))
   Debug.Print i, deleteMessage("ok")
   If Not deleteMessage("ok") Then Debug.Print deleteMessage("description")
  Next
